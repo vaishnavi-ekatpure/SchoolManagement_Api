@@ -25,6 +25,7 @@ def admin_middleware():
         return jsonify({"error": "You cant access"})
     
     session['auth_user'] = auth_user.serialize() if auth_user else None
+    
 
 @admin_routes.route('/dashboard', methods=['GET'])
 def dashboard():
@@ -47,7 +48,8 @@ def dashboard():
 
 @admin_routes.route('/profile', methods=['PUT'])
 def profile():
-    auth_user = session.pop('auth_user')
+    auth_user = session['auth_user']
+
     if not auth_user:
         return jsonify({'error': 'User not found'}), 404
     

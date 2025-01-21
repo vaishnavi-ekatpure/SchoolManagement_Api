@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, Blueprint
+from flask import Flask, session, request, jsonify, Blueprint
 from flaskr.validators.authentication_validator import *
 from django.contrib.auth.hashers import PBKDF2PasswordHasher, check_password
 from marshmallow import  ValidationError
@@ -47,25 +47,28 @@ def register():
     
 @auth_routes.route('/login', methods=['POST'])
 def login():
-    schema = LoginSchema() 
+    schema = LoginSchema()
+
     try:
         data = schema.load(request.json)
+        
         user = AuthenticationCustomuser.query.filter_by(username=data['username']).first()
-        if user:
-            hasher = PBKDF2PasswordHasher()
-            
-            if hasher.verify(data['password'], user.password):
-                
-                access_token = create_access_token(identity=user.id)
-                return jsonify({"access_token": access_token})
-            else:
-                return jsonify({"error": 'Invalid password'})
-
-        else:
-            return jsonify({"error": "Please enter valid username"})
+        
+        if not user:
+            return jsonify({"error": "Invalid username"})  
+        
+        if not user.is_active:
+            return jsonify({"error": "Account is inactive"}) 
+        
+        hasher = PBKDF2PasswordHasher()
+        if not hasher.verify(data['password'], user.password):
+            return jsonify({"error": "Invalid password"})  
+        
+        access_token = create_access_token(identity=user.id)
+        return jsonify({"access_token": access_token}), 200
 
     except ValidationError as err:
-        return jsonify({"errors": err.messages}), 400  
+        return jsonify({"errors": err.messages}), 400
 
 
 @auth_routes.route('/auth-user', methods=['GET'])
@@ -89,6 +92,9 @@ def revoked_token_callback(jwt_header, jwt_payload):
 def post():
     jti = get_jwt()["jti"]
     BLOCKLIST.add(jti)
+
+    session.pop('auth_user')
+
     return jsonify({'message': 'Successfully logged out'})
 
 
