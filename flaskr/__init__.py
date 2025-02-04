@@ -6,6 +6,7 @@ from flaskr.config.mailconfig import configure_mail
 from flaskr.config.extensions import jwt
 from flaskr.views.auth_view import auth_routes
 from flaskr.views.admin_view import admin_routes
+from flaskr.views.teacher_view import teacher_routes
 from datetime import timedelta
 from dotenv import load_dotenv
 
@@ -28,6 +29,7 @@ def create_app(test_config=None):
     #Register views
     app.register_blueprint(auth_routes)
     app.register_blueprint(admin_routes)
+    app.register_blueprint(teacher_routes)
     
     try:
         os.makedirs(app.instance_path)

@@ -93,7 +93,8 @@ def post():
     jti = get_jwt()["jti"]
     BLOCKLIST.add(jti)
 
-    session.pop('auth_user')
+    if session.get('auth_user'):
+        session.pop('auth_user')
 
     return jsonify({'message': 'Successfully logged out'})
 

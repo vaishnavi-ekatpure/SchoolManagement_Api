@@ -5,7 +5,7 @@ from flaskr.models.class_model import Class
 from flaskr.models.subject_model import Subject
 from flaskr.validators.profile_validator import ProfileSchema
 from flaskr.config.databaseconfig import db
-from marshmallow import Schema, fields, ValidationError
+from marshmallow import Schema, fields, ValidationError, validates
 from flask_mail import  Message
 from flaskr.config.mailconfig import mail
 import os
@@ -22,10 +22,9 @@ def admin_middleware():
     auth_user = AuthenticationCustomuser.query.get(id)
    
     if auth_user and auth_user.role == 2 or auth_user.role == 3:
-        return jsonify({"error": "You cant access"})
+        return jsonify({"error": "You can't access"})
     
     session['auth_user'] = auth_user.serialize() if auth_user else None
-    
 
 @admin_routes.route('/dashboard', methods=['GET'])
 def dashboard():
@@ -53,19 +52,21 @@ def profile():
     if not auth_user:
         return jsonify({'error': 'User not found'}), 404
     
+    user = AuthenticationCustomuser.query.get(auth_user['id'])
+
     request_data = request.json
-    schema = ProfileSchema(auth_user.id)
+    schema = ProfileSchema(user.id)
 
     try:
         data = schema.load(request_data)
     except ValidationError as err:
         return jsonify(err.messages) , 400  
 
-    auth_user.first_name = data['first_name'] 
-    auth_user.last_name = data['last_name'] 
-    auth_user.email = data['email']
-    auth_user.username = data['username']
-    auth_user.phone_number = data['phone_number']
+    user.first_name = data['first_name'] 
+    user.last_name = data['last_name'] 
+    user.email = data['email']
+    user.username = data['username']
+    user.phone_number = data['phone_number']
 
     db.session.commit()
 
@@ -77,6 +78,33 @@ def get_classes():
     classes = [ class_item.serialize() for class_item in classes]
 
     return jsonify({'classes' :classes})
+
+class ClassSubjectSchema(Schema):
+    class_subject = fields.List(fields.Int(), required=True)
+
+@admin_routes.route('/add-class-subject/<int:id>', methods=['POST'])
+def add_class_subject(id):
+    schema = ClassSubjectSchema()
+    try:
+        class_record = Class.query.get(id)
+        if not class_record:
+            return jsonify({'message': 'Class not found'})
+        
+        data = schema.load(request.json)
+        class_subjects = list(set(data['class_subject']))
+        
+        existing_ids = {s.id for s in Subject.query.filter(Subject.id.in_(class_subjects)).all()}
+       
+        if len(existing_ids) != len(class_subjects):
+            return jsonify({'message': 'class_subject value is not correct'})
+        
+        class_record.class_subject = class_subjects
+        db.session.commit()
+
+        return jsonify({'message': "Subject list added to class successfully"})
+
+    except ValidationError as err:
+        return jsonify(err.messages)    
 
 @admin_routes.route('/subjects', methods=['GET'])
 def get_subjects():
@@ -153,8 +181,6 @@ def delete_subject(id):
     db.session.commit()
 
     return jsonify({'message': 'Subject and its references removed successfully from teacher profiles and classes'}), 200
-
-
 
 @admin_routes.route('/students', methods=['GET'])
 def get_students():
