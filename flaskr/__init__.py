@@ -7,6 +7,7 @@ from flaskr.config.extensions import jwt
 from flaskr.views.auth_view import auth_routes
 from flaskr.views.admin_view import admin_routes
 from flaskr.views.teacher_view import teacher_routes
+from flaskr.views.student_view import student_routes
 from datetime import timedelta
 from dotenv import load_dotenv
 
@@ -14,6 +15,14 @@ def create_app(test_config=None):
     load_dotenv()
 
     app = Flask(__name__, instance_relative_config=True)
+
+
+    app.config.from_mapping(
+        TESTING=False,  
+    )
+
+    if test_config:
+        app.config.update(test_config)
 
     #For session storage
     app.secret_key = os.urandom(24)
@@ -30,6 +39,7 @@ def create_app(test_config=None):
     app.register_blueprint(auth_routes)
     app.register_blueprint(admin_routes)
     app.register_blueprint(teacher_routes)
+    app.register_blueprint(student_routes)
     
     try:
         os.makedirs(app.instance_path)

@@ -4,8 +4,8 @@ from sqlalchemy.dialects.postgresql import JSON
 class Class(db.Model):
     __tablename__ = 'management_class'
     id = db.Column(db.Integer, primary_key=True)
-    class_name = db.Column(db.String(150), nullable=True)
-    class_subject = db.Column(JSON, nullable=False)
+    class_name = db.Column(db.String(150), nullable=False)
+    class_subject = db.Column(JSON, nullable=True)
 
     def serialize(self):
         return {

@@ -12,12 +12,15 @@ auth_routes = Blueprint('auth', __name__, url_prefix='/auth')
 
 BLOCKLIST = set()
 
-@auth_routes.route('/')
+@auth_routes.route('')
 def index():
-    users = AuthenticationCustomuser.query.all()
-    users_list = [user.serialize() for user in users]
-    
-    return jsonify({'users': users_list})
+    try:
+        users = AuthenticationCustomuser.query.all()
+        users_list = [user.serialize() for user in users]
+        print('wertuop')
+        return jsonify({'users': users_list})
+    except Exception as e:
+        print(f"error {e}")
 
 @auth_routes.route('/register', methods=['POST'])
 def register():
@@ -97,5 +100,3 @@ def post():
         session.pop('auth_user')
 
     return jsonify({'message': 'Successfully logged out'})
-
-

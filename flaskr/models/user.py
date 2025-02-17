@@ -51,7 +51,7 @@ class StudentProfile(db.Model):
     address = db.Column(db.Text)
     class_taken_id = db.Column(db.Integer, db.ForeignKey('management_class.id'))
     management_class = db.relationship("Class", backref=backref("management_class_student", uselist=False)) 
-    profile = db.Column(db.String(150), nullable=False)
+    profile = db.Column(db.String(150), nullable=True)
 
     def serialize(self):
         return {
@@ -72,12 +72,12 @@ class TeacherProfile(db.Model):
     gender = db.Column(db.Enum(Gender))
     address = db.Column(db.Text)
     education = db.Column(db.String)
-    class_teacher_id = db.Column(db.Integer, db.ForeignKey('management_class.id'))
+    class_teacher_id = db.Column(db.Integer, db.ForeignKey('management_class.id'),nullable=True)
     management_class = db.relationship("Class", backref=backref("management_class_teacher", uselist=False)) 
-    class_teach = db.Column(JSON, nullable=False)
+    class_teach = db.Column(JSON, nullable=True)
     subject_id = db.Column(db.Integer, db.ForeignKey('management_subject.id'))
     management_subject = db.relationship("Subject", backref=backref("management_subject", uselist=False)) 
-    profile = db.Column(db.String(150), nullable=False)
+    profile = db.Column(db.String(150), nullable=True)
 
     def serialize(self):
         return {

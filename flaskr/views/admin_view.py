@@ -19,7 +19,7 @@ admin_routes = Blueprint('admin', __name__, url_prefix='/admin')
 @jwt_required()
 def admin_middleware():
     id = get_jwt_identity()
-    auth_user = AuthenticationCustomuser.query.get(id)
+    auth_user = db.session.get(AuthenticationCustomuser, id)
    
     if auth_user and auth_user.role == 2 or auth_user.role == 3:
         return jsonify({"error": "You can't access"})
@@ -52,7 +52,7 @@ def profile():
     if not auth_user:
         return jsonify({'error': 'User not found'}), 404
     
-    user = AuthenticationCustomuser.query.get(auth_user['id'])
+    user = db.session.get(AuthenticationCustomuser, auth_user['id'])
 
     request_data = request.json
     schema = ProfileSchema(user.id)
@@ -86,7 +86,7 @@ class ClassSubjectSchema(Schema):
 def add_class_subject(id):
     schema = ClassSubjectSchema()
     try:
-        class_record = Class.query.get(id)
+        class_record = db.session.get(Class,id)
         if not class_record:
             return jsonify({'message': 'Class not found'})
         
@@ -96,7 +96,7 @@ def add_class_subject(id):
         existing_ids = {s.id for s in Subject.query.filter(Subject.id.in_(class_subjects)).all()}
        
         if len(existing_ids) != len(class_subjects):
-            return jsonify({'message': 'class_subject value is not correct'})
+            return jsonify({'message': 'class_subject value is not correct'}), 422
         
         class_record.class_subject = class_subjects
         db.session.commit()
@@ -145,9 +145,9 @@ def update_subject(id):
         already_exist = Subject.query.filter(Subject.id!=id,Subject.name==data['name']).first()
 
         if already_exist:
-            return jsonify({'error': 'Already exist'})
+            return jsonify({'error': 'Already exist'}),403
         
-        subject = Subject.query.get(id)
+        subject = db.session.get(Subject,id)
 
         if not subject:
             return jsonify({'error': 'Subject not found'})
@@ -161,7 +161,7 @@ def update_subject(id):
 
 @admin_routes.route('/delete-subject/<int:id>', methods=['DELETE'])
 def delete_subject(id):
-    subject = Subject.query.get(id)
+    subject = db.session.get(Subject, id)
     if not subject:
         return jsonify({'error': 'Subject not found'}), 404
 
@@ -193,8 +193,8 @@ def get_students():
 
 @admin_routes.route('/change-status/<int:id>', methods=['GET'])
 def change_user_status(id):
-    user = AuthenticationCustomuser.query.get(id)
-    if user:
+    user = db.session.get(AuthenticationCustomuser, id)
+    if user and user.role != 1:
         user.is_active = not user.is_active
         db.session.commit()
 
@@ -211,15 +211,18 @@ def change_user_status(id):
 
         return jsonify({'message': 'Status hasn been changed'})
     else:
-        return jsonify({'error': 'User not found'})  
+        return jsonify({'error': 'User not found or you can not change status'})  
 
 @admin_routes.route('/delete-user/<int:id>', methods=['DELETE'])
 def delete_user(id):
     try:
-        user = AuthenticationCustomuser.query.get(id)
+        user = db.session.get(AuthenticationCustomuser,id)
 
         if not user:
             return jsonify({'error': 'User not found'}), 404
+        
+        if user and user.role == 1:
+            return jsonify({'error' : 'You can not delete admin'})
         
         db.session.delete(user)
         db.session.commit()
@@ -239,7 +242,7 @@ def delete_user(id):
     
 @admin_routes.route('/get-user/<int:id>', methods=['GET'])
 def get_user(id):
-    user = AuthenticationCustomuser.query.get(id)
+    user = db.session.get(AuthenticationCustomuser,id)
 
     if user:
        user = user.serialize()
@@ -257,14 +260,14 @@ def get_teachers():
 
 @admin_routes.route('/assign-class-teacher/<int:user_id>/<int:class_id>', methods=['GET'])
 def assign_class_teacher(user_id, class_id):
-    user = AuthenticationCustomuser.query.get(user_id)
+    user = db.session.get(AuthenticationCustomuser, user_id)
     
     if not user:
         return jsonify({'error': 'User not found'})
     elif user.role != 2:
         return jsonify({'error' : 'User is invalid'})
     
-    class_exist = Class.query.get(class_id)
+    class_exist = db.session.get(Class, class_id)
     if not class_exist:
         return jsonify({'error' : 'Class not found'})
     
@@ -280,7 +283,3 @@ def assign_class_teacher(user_id, class_id):
     db.session.commit()
 
     return jsonify({'message' : 'Class added successfully'})
-
-
-
-
